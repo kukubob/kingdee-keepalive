@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         金蝶云星空 HTML5 保持在线
 // @namespace    https://github.com/kukubob/kingdee-keepalive
-// @version      1.1.0
+// @version      1.1.1
 // @description  使用金蝶原生继续在线事件，定期更新闲置计时，不刷新业务页面。
 // @match        *://*/k3cloud/html5/dform.aspx*
 // @homepageURL  https://github.com/kukubob/kingdee-keepalive
@@ -29,38 +29,15 @@
   let result = '';
   let timer;
 
-  const panel = document.createElement('section');
+  const panel = document.createElement('button');
   panel.id = ID;
-  panel.style.cssText = 'position:fixed;right:16px;bottom:14px;z-index:2147483647;' +
-    'box-sizing:border-box;width:256px;padding:12px 14px;border:1px solid #dce4ed;' +
-    'border-radius:12px;background:#fff;color:#243447;box-shadow:0 3px 14px #17314b14;' +
-    'font:12px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
-  const heading = document.createElement('div');
-  heading.textContent = '距闲置退出';
-  heading.style.cssText = 'font-size:12px;color:#66778a;';
-  const countdown = document.createElement('div');
-  countdown.style.cssText = 'font-size:28px;font-weight:650;line-height:1.35;font-variant-numeric:tabular-nums;';
-  const detail = document.createElement('div');
-  detail.style.cssText = 'color:#66778a;margin-top:2px;';
-  const row = document.createElement('div');
-  row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;';
-  const status = document.createElement('span');
-  const toggle = document.createElement('button');
-  toggle.type = 'button';
-  toggle.style.cssText = 'font:inherit;border:1px solid #dce4ed;border-radius:6px;padding:3px 10px;' +
-    'background:#f7f9fc;color:#334960;cursor:pointer;';
-  row.append(status, toggle);
-  panel.append(heading, countdown, detail, row);
-  panel.title = '倒计时读取金蝶当前闲置设置。人工操作与保活都会重置它。这里只反映前端闲置计时，不代表服务器会话有效期。';
+  panel.type = 'button';
+  panel.style.cssText = 'position:fixed;right:12px;bottom:10px;z-index:2147483647;' +
+    'padding:4px 8px;border:1px solid #dce4ed;border-radius:5px;' +
+    'background:#f7f9fc;color:#66778a;white-space:nowrap;cursor:pointer;' +
+    'font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
   document.body.appendChild(panel);
 
-  function duration(seconds) {
-    const value = Math.max(0, Math.floor(seconds));
-    const h = Math.floor(value / 3600);
-    const m = Math.floor(value % 3600 / 60);
-    const s = value % 60;
-    return (h ? `${h}:` : '') + `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }
   function snapshot() {
     const app = page.ClientAppProxy?.Current;
     const last = Number(app?.lastRequestTime);
@@ -72,28 +49,18 @@
       enabled: Boolean(app.AppTimeOutEnable) };
   }
   function render(state) {
-    toggle.textContent = paused ? '恢复保活' : '暂停保活';
-    toggle.setAttribute('aria-pressed', String(paused));
-    countdown.textContent = !state ? '— —' : !state.enabled ? '未启用' : duration(state.limit - state.idle);
-    countdown.style.color = state?.enabled && state.limit - state.idle <= 300 ? '#b45309' : '#243447';
-    detail.textContent = !state ? '等待金蝶登录完成' :
-      `已闲置 ${duration(state.idle)} · 上限 ${duration(state.limit)}`;
-    if (paused) {
-      status.textContent = '已暂停 · 倒计时继续';
-      status.style.color = '#8a5a12';
-    } else if (!navigator.onLine) {
-      status.textContent = '断网 · 无法保活';
-      status.style.color = '#b42318';
-    } else if (!state) {
-      status.textContent = '等待就绪';
-      status.style.color = '#66778a';
-    } else if (result) {
-      status.textContent = result;
-      status.style.color = '#b42318';
-    } else {
-      status.textContent = state.enabled ? '自动保活已开启' : '闲置退出已关闭';
-      status.style.color = '#16704a';
-    }
+    const remaining = state ? Math.max(0, state.limit - state.idle) : 0;
+    const time = !state ? '等待登录' : !state.enabled ? '无闲置限制' :
+      remaining <= 0 ? '已达闲置上限' : remaining < 60 ? '剩余不足 1 分钟' :
+      `剩余约 ${Math.ceil(remaining / 60)} 分钟`;
+    const label = paused ? '已暂停' : !navigator.onLine ? '断网' : result ? '异常' : '保活中';
+    const text = `${label} · ${time}`;
+    if (panel.textContent !== text) panel.textContent = text;
+    panel.style.color = result || !navigator.onLine ? '#b42318' : '#66778a';
+    panel.setAttribute('aria-pressed', String(paused));
+    panel.title = `${paused ? '点击恢复保活' : '点击暂停保活'}。每分钟更新一次显示。` +
+      (result ? `${result}。` : '') +
+      '剩余时间来自金蝶前端闲置计时，不代表服务器会话有效期。';
   }
   function tick() {
     let state = snapshot();
@@ -118,7 +85,7 @@
     }
     render(state);
   }
-  toggle.addEventListener('click', () => {
+  panel.addEventListener('click', () => {
     paused = !paused;
     try { sessionStorage.setItem(STORAGE_KEY, paused ? '1' : '0'); } catch { /* 可选存储 */ }
     result = '';
@@ -127,7 +94,7 @@
   function start() {
     clearInterval(timer);
     tick();
-    timer = setInterval(tick, 1000); // 每秒本地读数；请求受闲置阈值与重试间隔限制。
+    timer = setInterval(tick, 60_000); // 每分钟检查保活并更新显示，不显示秒数。
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
   window.addEventListener('online', tick);
