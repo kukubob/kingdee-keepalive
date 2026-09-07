@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         金蝶云星空 HTML5 保持在线
 // @namespace    https://github.com/kukubob/kingdee-keepalive
-// @version      1.1.1
+// @version      1.1.2
 // @description  使用金蝶原生继续在线事件，定期更新闲置计时，不刷新业务页面。
 // @match        *://*/k3cloud/html5/dform.aspx*
 // @homepageURL  https://github.com/kukubob/kingdee-keepalive
@@ -29,13 +29,31 @@
   let result = '';
   let timer;
 
-  const panel = document.createElement('button');
+  let expanded = false;
+  const panel = document.createElement('div');
   panel.id = ID;
-  panel.type = 'button';
-  panel.style.cssText = 'position:fixed;right:12px;bottom:10px;z-index:2147483647;' +
-    'padding:4px 8px;border:1px solid #dce4ed;border-radius:5px;' +
-    'background:#f7f9fc;color:#66778a;white-space:nowrap;cursor:pointer;' +
+  panel.style.cssText = 'position:fixed;right:10px;bottom:10px;z-index:2147483647;' +
+    'display:flex;align-items:center;gap:6px;' +
     'font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
+  const details = document.createElement('div');
+  details.id = `${ID}-details`;
+  details.style.cssText = 'display:none;align-items:center;gap:8px;padding:4px 8px;' +
+    'border:1px solid #dce4ed;border-radius:5px;background:#f7f9fc;color:#66778a;white-space:nowrap;';
+  const status = document.createElement('span');
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.style.cssText = 'font:inherit;color:#66778a;background:none;border:0;padding:0;cursor:pointer;';
+  details.append(status, toggle);
+  const dot = document.createElement('button');
+  dot.type = 'button';
+  dot.style.cssText = 'display:flex;align-items:center;justify-content:center;width:24px;height:24px;' +
+    'border:0;padding:0;background:transparent;cursor:pointer;';
+  dot.setAttribute('aria-controls', details.id);
+  dot.setAttribute('aria-expanded', 'false');
+  const indicator = document.createElement('span');
+  indicator.style.cssText = 'display:block;width:10px;height:10px;border-radius:50%;background:#7b9c8b;';
+  dot.append(indicator);
+  panel.append(details, dot);
   document.body.appendChild(panel);
 
   function snapshot() {
@@ -55,11 +73,14 @@
       `剩余约 ${Math.ceil(remaining / 60)} 分钟`;
     const label = paused ? '已暂停' : !navigator.onLine ? '断网' : result ? '异常' : '保活中';
     const text = `${label} · ${time}`;
-    if (panel.textContent !== text) panel.textContent = text;
-    panel.style.color = result || !navigator.onLine ? '#b42318' : '#66778a';
-    panel.setAttribute('aria-pressed', String(paused));
-    panel.title = `${paused ? '点击恢复保活' : '点击暂停保活'}。每分钟更新一次显示。` +
-      (result ? `${result}。` : '') +
+    if (status.textContent !== text) status.textContent = text;
+    indicator.style.background = result || !navigator.onLine ? '#bd827b' :
+      paused || !state ? '#a5adb5' : '#7b9c8b';
+    toggle.textContent = paused ? '恢复' : '暂停';
+    toggle.setAttribute('aria-pressed', String(paused));
+    dot.setAttribute('aria-label', `${expanded ? '收起' : '展开'}金蝶保活状态：${label}`);
+    dot.title = `金蝶保活：${label}，点击${expanded ? '收起' : '查看剩余时间'}`;
+    details.title = '每分钟更新一次显示。' + (result ? `${result}。` : '') +
       '剩余时间来自金蝶前端闲置计时，不代表服务器会话有效期。';
   }
   function tick() {
@@ -85,7 +106,13 @@
     }
     render(state);
   }
-  panel.addEventListener('click', () => {
+  dot.addEventListener('click', () => {
+    expanded = !expanded;
+    details.style.display = expanded ? 'flex' : 'none';
+    dot.setAttribute('aria-expanded', String(expanded));
+    render(snapshot());
+  });
+  toggle.addEventListener('click', () => {
     paused = !paused;
     try { sessionStorage.setItem(STORAGE_KEY, paused ? '1' : '0'); } catch { /* 可选存储 */ }
     result = '';
