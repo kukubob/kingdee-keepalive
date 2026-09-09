@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OA 一键复制审核流程
 // @namespace    https://github.com/kukubob/oa-workflow-copy
-// @version      1.1.0
+// @version      1.1.1
 // @description  一键复制当前审核流程编号，避让顶部操作按钮，并隐藏流程页面水印。
 // @match        *://*/spa/workflow/*
 // @homepageURL  https://github.com/kukubob/personal-userscripts
@@ -46,25 +46,14 @@
   let operation = 0;
 
   function positionButton() {
-    // 顶部标签栏右侧的实际空隙；窗口缩放后重新测量。
+    // 固定在表单区域右上角，位于顶部操作栏下方。
     const header = document.querySelector('.wea-new-top-req-title');
-    const nav = header?.querySelector('.ant-tabs-nav');
-    const r = nav?.getBoundingClientRect();
-    const width = 126;
-    const height = button.getBoundingClientRect().height || 36;
-    const left = r ? r.right + 12 : 0;
-    const top = r ? r.top + (r.height - height) / 2 : 0;
-    const overlaps = header && [...header.querySelectorAll('button, a, input, [role="button"]')]
-      .some(el => {
-        const b = el.getBoundingClientRect();
-        return b.width > 0 && b.height > 0 && left < b.right + 8 && left + width > b.left - 8 &&
-          top < b.bottom && top + height > b.top;
-      });
-    const fits = r && r.width > 0 && top >= 0 && left + width + 16 < window.innerWidth && !overlaps;
-    button.style.left = fits ? `${left}px` : 'auto';
-    button.style.top = fits ? `${top}px` : 'auto';
-    button.style.right = fits ? 'auto' : '16px';
-    button.style.bottom = fits ? 'auto' : '20px';
+    const rect = header?.getBoundingClientRect();
+    const top = rect && rect.height > 0 ? Math.max(0, rect.bottom) + 12 : 84;
+    button.style.left = 'auto';
+    button.style.top = `${top}px`;
+    button.style.right = '32px';
+    button.style.bottom = 'auto';
   }
 
   function render() {
