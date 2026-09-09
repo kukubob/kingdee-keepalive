@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         OA 一键复制审核流程
 // @namespace    https://github.com/kukubob/oa-workflow-copy
-// @version      1.0.3
-// @description  点击小按钮，将当前流程编号复制为“审核流程：编号”。
+// @version      1.1.0
+// @description  一键复制当前审核流程编号，避让顶部操作按钮，并隐藏流程页面水印。
 // @match        *://*/spa/workflow/*
 // @homepageURL  https://github.com/kukubob/personal-userscripts
 // @downloadURL  https://raw.githubusercontent.com/kukubob/personal-userscripts/main/oa-workflow-copy.user.js
@@ -28,11 +28,16 @@
     return values.length === 1 && /^[1-9]\d*$/.test(values[0]) ? values[0] : null;
   }
 
+  // 仅隐藏已确认的流程水印容器，不碰表单、附件或原文件。
+  const watermarkStyle = document.createElement('style');
+  watermarkStyle.textContent = 'html[data-oa-workflow-clean] #wf_watremark_wrap { display:none !important; }';
+  document.head.appendChild(watermarkStyle);
+
   const button = document.createElement('button');
   button.id = elementId;
   button.type = 'button';
-  button.style.cssText = 'position:fixed;right:16px;top:20px;z-index:2147483647;' +
-    'padding:7px 11px;border:1px solid #d9dfe7;border-radius:6px;' +
+  button.style.cssText = 'position:fixed;right:16px;bottom:20px;z-index:2147483647;' +
+    'width:126px;box-sizing:border-box;white-space:nowrap;padding:7px 11px;border:1px solid #d9dfe7;border-radius:6px;' +
     'background:#fff;color:#526174;font:13px/1.5 system-ui,sans-serif;cursor:pointer;' +
     'box-shadow:0 1px 4px #00000012;';
   button.setAttribute('aria-live', 'polite');
@@ -40,9 +45,32 @@
   let resetTimer;
   let operation = 0;
 
+  function positionButton() {
+    // 顶部标签栏右侧的实际空隙；窗口缩放后重新测量。
+    const header = document.querySelector('.wea-new-top-req-title');
+    const nav = header?.querySelector('.ant-tabs-nav');
+    const r = nav?.getBoundingClientRect();
+    const width = 126;
+    const height = button.getBoundingClientRect().height || 36;
+    const left = r ? r.right + 12 : 0;
+    const top = r ? r.top + (r.height - height) / 2 : 0;
+    const overlaps = header && [...header.querySelectorAll('button, a, input, [role="button"]')]
+      .some(el => {
+        const b = el.getBoundingClientRect();
+        return b.width > 0 && b.height > 0 && left < b.right + 8 && left + width > b.left - 8 &&
+          top < b.bottom && top + height > b.top;
+      });
+    const fits = r && r.width > 0 && top >= 0 && left + width + 16 < window.innerWidth && !overlaps;
+    button.style.left = fits ? `${left}px` : 'auto';
+    button.style.top = fits ? `${top}px` : 'auto';
+    button.style.right = fits ? 'auto' : '16px';
+    button.style.bottom = fits ? 'auto' : '20px';
+  }
+
   function render() {
     const id = requestId();
     button.hidden = !id;
+    document.documentElement.toggleAttribute('data-oa-workflow-clean', Boolean(id));
     if (id !== displayedId) {
       displayedId = id;
       operation += 1;
@@ -51,6 +79,7 @@
       button.textContent = '复制审核流程';
       button.title = id ? `复制：审核流程：${id}` : '';
     }
+    if (id) positionButton();
   }
 
   button.addEventListener('click', () => {
@@ -80,6 +109,7 @@
 
   document.body.appendChild(button);
   render();
+  window.addEventListener('resize', render);
   window.addEventListener('hashchange', render);
   window.addEventListener('popstate', render);
   // 覆盖 pushState/replaceState 跳转，无须改写 OA 自身函数。
