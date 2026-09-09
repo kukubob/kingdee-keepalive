@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         金蝶云星空 HTML5 保持在线
 // @namespace    https://github.com/kukubob/kingdee-keepalive
-// @version      1.1.2
+// @version      1.1.3
 // @description  使用金蝶原生继续在线事件，定期更新闲置计时，不刷新业务页面。
 // @match        *://*/k3cloud/html5/dform.aspx*
-// @homepageURL  https://github.com/kukubob/kingdee-keepalive
-// @downloadURL  https://raw.githubusercontent.com/kukubob/kingdee-keepalive/main/kingdee-keepalive.user.js
-// @updateURL    https://raw.githubusercontent.com/kukubob/kingdee-keepalive/main/kingdee-keepalive.user.js
+// @homepageURL  https://github.com/kukubob/personal-userscripts
+// @downloadURL  https://raw.githubusercontent.com/kukubob/personal-userscripts/main/kingdee-keepalive.user.js
+// @updateURL    https://raw.githubusercontent.com/kukubob/personal-userscripts/main/kingdee-keepalive.user.js
 // @run-at       document-idle
 // @grant        unsafeWindow
 // @noframes

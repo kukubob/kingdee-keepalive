@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         OA 一键复制审核流程
 // @namespace    https://github.com/kukubob/oa-workflow-copy
-// @version      1.0.2
+// @version      1.0.3
 // @description  点击小按钮，将当前流程编号复制为“审核流程：编号”。
 // @match        *://*/spa/workflow/*
-// @homepageURL  https://github.com/kukubob/kingdee-keepalive
-// @downloadURL  https://raw.githubusercontent.com/kukubob/kingdee-keepalive/main/oa-workflow-copy.user.js
-// @updateURL    https://raw.githubusercontent.com/kukubob/kingdee-keepalive/main/oa-workflow-copy.user.js
+// @homepageURL  https://github.com/kukubob/personal-userscripts
+// @downloadURL  https://raw.githubusercontent.com/kukubob/personal-userscripts/main/oa-workflow-copy.user.js
+// @updateURL    https://raw.githubusercontent.com/kukubob/personal-userscripts/main/oa-workflow-copy.user.js
 // @run-at       document-idle
 // @grant        GM_setClipboard
 // @noframes
